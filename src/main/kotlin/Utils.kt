@@ -1,0 +1,6 @@
+object Utils{
+    class Config{
+        
+
+    }
+}
