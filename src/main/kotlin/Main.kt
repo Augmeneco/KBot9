@@ -8,8 +8,12 @@ fun main(args: Array<String>) {
     val telegram = Telegram()
 
     while(true){
-        for (i in telegram.getUpdates()){
-            println(i)
+        for (update in telegram.getUpdates()){
+            val msg = Utils.Msg().parseUpdate(update)
+
+            if (msg.isCommand && msg.command == "стат"){
+                msg.sendMessage("хуй соси")
+            }
         }
     }
 }

@@ -1,29 +1,24 @@
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.*
-
-import org.json.JSONArray
 import org.json.JSONObject
 
 import java.io.File
 
 class Telegram {
-    var config: JSONObject
     var token: String
     var updateId: Int = -1
+    var requests = Utils.Requests()
 
     init {
-        config = JSONObject(File("data/config.json").readText())
-        token = "bot"+config.getString("telegram_token")
+        token = "bot"+Utils.config.telegramToken
     }
 
     fun getUpdates(): Sequence<JSONObject> = sequence{
-        val (request, response, result) = Fuel.post(
+        val result = requests.post(
             "https://api.telegram.org/$token/getUpdates",
-            listOf(
+            mutableMapOf(
                 "offset" to updateId
             )
-        ).responseString()
-        val updates = JSONObject(result.get()).getJSONArray("result")
+        ).json() as JSONObject
+        val updates = result.getJSONArray("result")
 
         for (i in 0 until updates.length()){
             val update = updates.getJSONObject(i)
@@ -33,5 +28,20 @@ class Telegram {
                 yield(update.getJSONObject("message"))
             }
         }
+    }
+
+    fun sendMessage(text: String, chatId: Int, params: MutableMap<Any, Any> = mutableMapOf()): Any {
+        params.putAll(
+            mutableMapOf(
+                "chat_id" to chatId,
+                "text" to text,
+                "parse_mode" to "HTML"
+            )
+        )
+
+        return requests.post(
+            "https://api.telegram.org/$token/sendMessage",
+            params
+        ).json()
     }
 }
