@@ -69,7 +69,8 @@ object Utils{
             val argv = isCmdRegex.replaceFirst(this.text, "").split(" ").toMutableList()
             val command = argv[0].lowercase()
 
-            if (!config.plugins.contains(command)){
+
+            if (!Plugins.pluginsMap.contains(command)){
                 this.argv = argv
                 this.userText = argv.joinToString()
                 this.command = this.userText
