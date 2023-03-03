@@ -8,7 +8,7 @@ class Telegram {
     var requests = Utils.Requests()
 
     init {
-        token = "bot"+Utils.config.telegramToken
+        token = Utils.config.telegramToken
     }
 
     fun getUpdates(): Sequence<JSONObject> = sequence{

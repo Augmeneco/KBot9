@@ -12,18 +12,13 @@ object Utils{
         var telegramToken: String
         var names: MutableList<String>
         var configJSON: JSONObject
-        var plugins: MutableList<String>
 
         init{
             configJSON = JSONObject(File("data/config.json").readText())
             names = configJSON.getJSONArray("names").toMutableList().map{
                 it.toString()
             }.toMutableList()
-            telegramToken = configJSON.getString("telegram_token")
-
-            plugins = mutableListOf(
-                "стат", "статус", "помощь"
-            )
+            telegramToken = "bot"+configJSON.getString("telegram_token")
         }
     }
     var config: Config = Config()
@@ -98,11 +93,10 @@ object Utils{
             }
 
             if (update.has("photo")){
-                println(update.getJSONArray("photo"))
                 //val fileId = update.getJSONArray("photo").toList()
 
                 if (update.has("caption")){
-                    this.text = update.getString("text")
+                    this.text = update.getString("caption")
                 }
             }
 
