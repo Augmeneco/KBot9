@@ -1,5 +1,6 @@
 ### Kbot ###
 data/config.json
+data/db.db
 
 .gradle
 build/

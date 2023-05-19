@@ -1,44 +1,37 @@
 package plugins
 
-import java.io.File
-import java.lang.Runtime.getRuntime
-
 import PluginBase
 import Plugins
+import Utils
+import java.lang.Runtime.getRuntime
 
 class Status: PluginBase() {
     override val names = mutableListOf("стат", "стата", "статус")
+    override val desc = "Статистика бота"
+    override val level = 1
 
     init { Plugins.initPlugin(this) }
 
     override fun main(msg: Utils.Msg){
         var out: String = """[ Статистика ]
 Система:
- Процессор:
-${getCpuLoad()} ОЗУ:
+&#8195;${getCpuLoad()} 
+ОЗУ:
 ${getRamUsage()}
 Бот:
- Время работы: null
- Обращений: null"""
+&#8195;Активные потоки тредпула: ${msg.threadPool?.activeCount}
+&#8195;Время работы: ${
+    formatElapsedTime(System.currentTimeMillis() - Utils.registry.data["uptime"]?.toLong()!!)
+}
+&#8195;Обращений всего: ${Utils.registry.data["usageAll"]}
+&#8195;Обращений с включения: ${Utils.registry.data["usage"]}"""
 
         msg.sendMessage(out)
     }
 
     fun getCpuLoad(): String{
-        var cpuCoresLoad = ""
 
-        val statFile = File("/proc/stat")
-        val cpuLines = statFile.readLines().filter { it.startsWith("cpu") }
-        for (i in cpuLines.indices) {
-            if (i==0) continue
-            val lineParts = cpuLines[i].split("\\s+".toRegex())
-            val coreName = "Ядро №" + i
-            val totalTicks = lineParts.slice(1 until lineParts.size).map { it.toLong() }.sum()
-            val idleTicks = lineParts[4].toLong()
-            val usage = (1.0 - (idleTicks.toDouble() / totalTicks.toDouble())) * 100
-            cpuCoresLoad += "&#8195;&#8195;$coreName: %.0f%%\n".format(usage)
-        }
-        return cpuCoresLoad
+        return getRuntime().exec("uptime").inputStream.bufferedReader().readText().trim()
     }
 
     fun getRamUsage(): String{
@@ -62,5 +55,13 @@ ${getRamUsage()}
                 "&#8195;&#8195;Использовано ботом: $usedMemoryJVM MB\n" +
                 "&#8195;&#8195;Свободно в системе: $freeMemory MB\n" +
                 "&#8195;&#8195;Свободно в JVM: $freeMemoryJVM MB"
+    }
+
+    fun formatElapsedTime(elapsedTime: Long): String {
+        val hours = elapsedTime / (1000 * 60 * 60)
+        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
+        val seconds = (elapsedTime % (1000 * 60)) / 1000
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 }
