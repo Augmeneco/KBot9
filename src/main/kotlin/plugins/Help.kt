@@ -15,7 +15,7 @@ class Help: PluginBase() {
         var out = "[ Помощь ]\n"
 
         for (plugin in Plugins.pluginsList){
-            if (msg.user.level >= level)
+            if (msg.user.level >= plugin.level && !plugin.hidden)
                 out += "• ${Utils.config.names[0]} ${plugin.names[0]} - ${plugin.desc}\n"
         }
 

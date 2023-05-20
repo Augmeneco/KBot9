@@ -34,9 +34,24 @@ fun main(args: Array<String>) {
             val msg = Utils.Msg().parseUpdate(update)
             msg.threadPool = threadPool
 
-            if (msg.isCommand){
+            if (msg.isCommand || msg.user.context != "main"){
                 val future = threadPool.submit(Callable<Unit> {
-                    Plugins.pluginsMap[msg.command]?.main(msg)
+                    //запускаем контекст если у юзера он имеется. команда нам не нужна тогда
+                    if (msg.user.context != "main"){
+                        val context = Utils.context.get(msg.user.context)
+                        context?.main(msg, msg.user.data.getJSONObject("context").getJSONObject(msg.user.context))
+
+                        return@Callable
+                    }
+
+                    val plugin = Plugins.pluginsMap[msg.command]
+                    if (msg.user.level >= plugin?.level!!){
+                        plugin.main(msg)
+                    }else{
+                        msg.sendMessage("Извини, но твоего уровня прав не достаточно, необходим ${plugin.level}, " +
+                                "а у тебя лишь ${msg.user.level}")
+                    }
+
 
                     println("The command \"${msg.command}\" started in thread \"${Thread.currentThread().name}\"")
                 })

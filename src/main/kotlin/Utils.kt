@@ -37,6 +37,22 @@ object Utils{
 
     }
 
+    class Context{
+        var contexts = mutableMapOf<String, ContextBase>()
+
+        fun register(name: String, pointer: ContextBase): Context{
+            println("Registered context \"$name\"")
+            contexts[name] = pointer
+
+            return this
+        }
+
+        fun get(name: String): ContextBase? {
+            return this.contexts[name]
+        }
+
+    }
+
     class Registry{
         var data: MutableMap<String, String> = mutableMapOf()
 
@@ -108,6 +124,24 @@ object Utils{
         var level: Int = 1
         lateinit var context: String
         lateinit var data: JSONObject
+
+        fun changeContext(name: String, args: MutableMap<String, Any> = mutableMapOf()): User{
+            this.context = name
+            if (!this.data.has("context"))
+                this.data.put("context", JSONObject())
+
+            //if (!this.data.getJSONObject("context").has(name))
+            this.data.getJSONObject("context").put(name, JSONObject(args))
+            //else
+            //    this.data.getJSONObject("context").
+
+            this.updateUser()
+
+
+
+
+            return this
+        }
 
         fun updateUser(): User{
             val cur = Utils.dataBase.db.prepareStatement(
@@ -322,6 +356,7 @@ object Utils{
     var dataBase = Utils.DataBase()
     var telegram: Telegram = Telegram()
     var registry: Registry = Registry()
+    var context: Context = Context()
     val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("|")})?\s?""", RegexOption.IGNORE_CASE)
 
     class Msg {
@@ -459,5 +494,13 @@ object Utils{
         }
 
         return jsonArray
+    }
+
+    fun formatElapsedTime(elapsedTime: Long): String {
+        val hours = elapsedTime / (1000 * 60 * 60)
+        val minutes = (elapsedTime % (1000 * 60 * 60)) / (1000 * 60)
+        val seconds = (elapsedTime % (1000 * 60)) / 1000
+
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
     }
 }

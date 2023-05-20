@@ -1,3 +1,4 @@
+import org.json.JSONObject
 import java.io.File
 import java.net.URLClassLoader
 
@@ -10,6 +11,7 @@ object Plugins{
     fun loadPlugins(){
         Status()
         Help()
+        ContextTest()
     }
 
     fun initPlugin(plugin: PluginBase){
@@ -27,6 +29,11 @@ object Plugins{
 abstract class PluginBase{
     abstract val names: MutableList<String>
     abstract val desc: String
-    abstract val level: Int
+    open val level: Int = 1
+    open val hidden: Boolean = false
     abstract fun main(msg: Utils.Msg)
+}
+
+abstract class ContextBase{
+    abstract fun main(msg: Utils.Msg, args: JSONObject)
 }
