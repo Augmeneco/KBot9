@@ -30,7 +30,17 @@ class Telegram {
         }
     }
 
-    fun sendMessage(text: String, chatId: Int, params: MutableMap<Any, Any> = mutableMapOf()): Any {
+    fun sendChatAction(chatId: Long, action: String = "typing"){
+        requests.post(
+            "https://api.telegram.org/$token/sendChatAction",
+            mutableMapOf(
+                "chat_id" to chatId,
+                "action" to action
+            )
+        )
+    }
+
+    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()): Any {
         params.putAll(
             mutableMapOf(
                 "chat_id" to chatId,
@@ -38,6 +48,7 @@ class Telegram {
                 "parse_mode" to "HTML"
             )
         )
+        if (params["text"] == "") params["text"] = " "
 
         return requests.post(
             "https://api.telegram.org/$token/sendMessage",

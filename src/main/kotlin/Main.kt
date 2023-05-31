@@ -3,6 +3,7 @@ import com.github.kittinunf.fuel.core.*
 
 import org.json.JSONArray
 import org.json.JSONObject
+import plugins.KBotGPT
 
 import java.util.concurrent.*
 
@@ -35,14 +36,16 @@ fun main(args: Array<String>) {
             msg.threadPool = threadPool
 
             if (msg.isCommand || msg.user.context != "main"){
-                val future = threadPool.submit(Callable<Unit> {
+                threadPool.execute{
                     //запускаем контекст если у юзера он имеется. команда нам не нужна тогда
                     if (msg.user.context != "main"){
                         val context = Utils.context.get(msg.user.context)
                         context?.main(msg, msg.user.data.getJSONObject("context").getJSONObject(msg.user.context))
 
-                        return@Callable
+                        return@execute
                     }
+
+                    println("The command \"${msg.command}\" started in thread \"${Thread.currentThread().name}\"")
 
                     val plugin = Plugins.pluginsMap[msg.command]
                     if (msg.user.level >= plugin?.level!!){
@@ -51,17 +54,6 @@ fun main(args: Array<String>) {
                         msg.sendMessage("Извини, но твоего уровня прав не достаточно, необходим ${plugin.level}, " +
                                 "а у тебя лишь ${msg.user.level}")
                     }
-
-
-                    println("The command \"${msg.command}\" started in thread \"${Thread.currentThread().name}\"")
-                })
-
-                // устанавливаем таймаут для задачи в 1 минуту
-                try {
-                    future.get(1, TimeUnit.MINUTES)
-                } catch (e: TimeoutException) {
-                    future.cancel(true)
-                    println("Task timed out after 1 minute")
                 }
 
                 //добавляем значение счётчика сообщений
@@ -70,6 +62,16 @@ fun main(args: Array<String>) {
                 Utils.registry.data["usageAll"] = (Utils.registry.data["usageAll"]?.toInt()?.plus(1)).toString()
                 Utils.registry.data["usage"] = (Utils.registry.data["usage"]?.toInt()?.plus(1)).toString()
                 Utils.registry.update()
+
+            } else if (msg.botMention){
+                //Такой команды не существует по этому используем GPT для ответа
+
+                threadPool.execute{
+                    val kbotGPT = KBotGPT(skipInit = true)
+                    kbotGPT.answerMode = true
+
+                    kbotGPT.main(msg)
+                }
             }
         }
     }

@@ -12,6 +12,7 @@ object Plugins{
         Status()
         Help()
         ContextTest()
+        KBotGPT()
     }
 
     fun initPlugin(plugin: PluginBase){
@@ -26,7 +27,7 @@ object Plugins{
     }
 }
 
-abstract class PluginBase{
+abstract class PluginBase(skipInit: Boolean = false){
     abstract val names: MutableList<String>
     abstract val desc: String
     open val level: Int = 1

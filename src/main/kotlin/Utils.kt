@@ -115,7 +115,7 @@ object Utils{
     }
 
     class User{
-        var id: Int = -1
+        var id: Long = -1
         var userName: String = ""
         var realName: String = ""
         var language: String = ""
@@ -154,13 +154,13 @@ object Utils{
                     "data = ?" +
                 "WHERE id = ?"
             )
-            cur.setInt(1, this.id)
+            cur.setLong(1, this.id)
             cur.setString(2, this.userName)
             cur.setString(3, this.realName)
             cur.setInt(4, this.level)
             cur.setString(5, this.context.toString())
             cur.setString(6, this.data.toString())
-            cur.setInt(7, this.id)
+            cur.setLong(7, this.id)
 
             cur.executeUpdate()
 
@@ -171,17 +171,17 @@ object Utils{
             return getUser(this.id)
         }
 
-        fun getUser(id: Int): User{
+        fun getUser(id: Long): User{
             val cur = Utils.dataBase.db.prepareStatement(
                 "SELECT * FROM users WHERE id=?"
             )
-            cur.setInt(1, id)
+            cur.setLong(1, id)
 
             val result = cur.executeQuery()
 
             if (result.next()){
                 do {
-                    this.id = result.getInt("id")
+                    this.id = result.getLong("id")
                     this.userName = result.getString("userName")
                     this.realName = result.getString("realName")
                     this.level = result.getInt("level")
@@ -201,7 +201,7 @@ object Utils{
 
         fun getUser(update: JSONObject): User{
             val fromObject = update.getJSONObject("from")
-            this.id = fromObject.getInt("id")
+            this.id = fromObject.getLong("id")
 
             try {
                 return getUser(this.id)
@@ -215,10 +215,16 @@ object Utils{
         fun addUser(update: JSONObject): User{
             val fromObject = update.getJSONObject("from")
 
-            this.id = fromObject.getInt("id")
+            this.id = fromObject.getLong("id")
             this.userName = fromObject.getString("username")
-            this.realName = "${fromObject.getString("first_name")} ${fromObject.getString("last_name")}"
-            this.language = fromObject.getString("language_code")
+
+            this.realName = fromObject.getString("first_name")
+            if (fromObject.has("last_name"))
+                this.realName += "  ${fromObject.getString("last_name")}"
+
+            if (fromObject.has("language_code")) this.language = fromObject.getString("language_code")
+            else this.language = "ru"
+
             this.isBot = fromObject.getBoolean("is_bot")
             this.context = "main"
 
@@ -229,7 +235,7 @@ object Utils{
             val cur = Utils.dataBase.db.prepareStatement(
                 "INSERT INTO users VALUES (?,?,?,?,?,?)"
             )
-            cur.setInt(1, this.id)
+            cur.setLong(1, this.id)
             cur.setString(2, this.userName)
             cur.setString(3, this.realName)
             cur.setInt(4, this.level)
@@ -243,9 +249,9 @@ object Utils{
     }
 
     class Chat{
-        var id: Int = -1
+        var id: Long = -1
         lateinit var data: JSONObject
-        var users: MutableList<Int> = mutableListOf()
+        var users: MutableList<Long> = mutableListOf()
         var type: String = ""
         var title: String = ""
 
@@ -260,10 +266,10 @@ object Utils{
                     "users = ?" +
                 "WHERE id = ?"
             )
-            cur.setInt(1, this.id)
+            cur.setLong(1, this.id)
             cur.setString(2, this.data.toString())
             cur.setString(3, this.users.toString())
-            cur.setInt(4, this.id)
+            cur.setLong(4, this.id)
 
             cur.executeUpdate()
 
@@ -274,19 +280,19 @@ object Utils{
             return getChat(this.id)
         }
 
-        fun getChat(id: Int): Chat{
+        fun getChat(id: Long): Chat{
             val cur = Utils.dataBase.db.prepareStatement(
                 "SELECT * FROM chats WHERE id=?"
             )
-            cur.setInt(1, id)
+            cur.setLong(1, id)
 
             val result = cur.executeQuery()
 
             if (result.next()){
                 do {
-                    this.id = result.getInt("id")
+                    this.id = result.getLong("id")
                     this.data = JSONObject(result.getString("data"))
-                    this.users = JSONArray(result.getString("users")).toList().toMutableList() as MutableList<Int>
+                    this.users = JSONArray(result.getString("users")).toList().toMutableList() as MutableList<Long>
                     this.title = this.data.getString("title")
                     this.type = this.data.getString("type")
 
@@ -301,7 +307,7 @@ object Utils{
 
         fun getChat(update: JSONObject): Chat{
             val chatObject = update.getJSONObject("chat")
-            this.id = chatObject.getInt("id")
+            this.id = chatObject.getLong("id")
 
             try {
                 return getChat(this.id)
@@ -315,12 +321,16 @@ object Utils{
         fun addChat(update: JSONObject): Chat{
             val chatObject = update.getJSONObject("chat")
 
-            this.id = chatObject.getInt("id")
+            this.id = chatObject.getLong("id")
             this.type = chatObject.getString("type")
             this.users = mutableListOf()
             this.data = JSONObject()
-            this.title = if (this.type == "group") chatObject.getString("title")
-                else "${chatObject.getString("first_name")} ${chatObject.getString("last_name")}"
+
+            if (this.type == "group" || this.type == "supergroup"){
+                this.title = chatObject.getString("title")
+            } else {
+                this.title = "${chatObject.getString("first_name")} ${chatObject.getString("last_name")}"
+            }
 
             val cur = Utils.dataBase.db.prepareStatement(
                 "INSERT INTO chats VALUES (?,?,?)"
@@ -329,7 +339,7 @@ object Utils{
             this.data.put("title", this.title)
             this.data.put("type", this.type)
 
-            cur.setInt(1, this.id)
+            cur.setLong(1, this.id)
             cur.setString(2, this.data.toString())
             cur.setString(3, list2Json(this.users as MutableList<Any>).toString())
 
@@ -343,6 +353,7 @@ object Utils{
         var telegramToken: String
         var names: MutableList<String>
         var configJSON: JSONObject
+        var botPrefix: String
 
         init{
             configJSON = JSONObject(File("data/config.json").readText())
@@ -350,6 +361,7 @@ object Utils{
                 it.toString()
             }.toMutableList()
             telegramToken = "bot"+configJSON.getString("telegram_token")
+            botPrefix = configJSON.getString("bot_prefix")
         }
     }
     var config: Config = Config()
@@ -357,18 +369,20 @@ object Utils{
     var telegram: Telegram = Telegram()
     var registry: Registry = Registry()
     var context: Context = Context()
-    val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("|")})?\s?""", RegexOption.IGNORE_CASE)
+    val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("\\s|")})?\s?""", RegexOption.IGNORE_CASE)
 
     class Msg {
         var text: String = ""
-        var chatId: Int = 0
-        var fromId: Int = 0
+        var chatId: Long = 0
+        var fromId: Long = 0
+        var msgId: Long = 0
         var files: List<Any> = emptyList()
         var argv: List<String> = emptyList()
         var userText: String = ""
         var data: Any? = null
         var reply: Msg? = null
         var isCommand: Boolean = false
+        var botMention: Boolean = false
         var command: String = ""
         var threadPool: ThreadPoolExecutor? = null
         lateinit var user: User
@@ -381,6 +395,7 @@ object Utils{
                 "fromId" to fromId,
                 "files" to files,
                 "argv" to argv,
+                "msgId" to msgId,
                 "userText" to userText,
                 "data" to data,
                 "reply" to reply,
@@ -392,8 +407,14 @@ object Utils{
         }
 
         fun parseCommand(){
+            if (this.text.contains(config.botPrefix))
+                this.text = this.text.replace(config.botPrefix,"")
 
-            val prefix = isCmdRegex.find(this.text)?.value
+            val matchResult = isCmdRegex.find(this.text)
+            if (matchResult?.groupValues?.get(1) != "")
+                botMention = true
+
+            val prefix = matchResult?.value
             if (prefix == "" || prefix == null){
                 return
             }
@@ -401,10 +422,9 @@ object Utils{
             val argv = isCmdRegex.replaceFirst(this.text, "").split(" ").toMutableList()
             val command = argv[0].lowercase()
 
-
             if (!Plugins.pluginsMap.contains(command)){
                 this.argv = argv
-                this.userText = argv.joinToString()
+                this.userText = argv.joinToString(separator = " ")
                 this.command = this.userText
                 return
             }
@@ -414,7 +434,7 @@ object Utils{
             this.command = command
             this.isCommand = true
             this.argv = argv
-            this.userText = argv.joinToString()
+            this.userText = argv.joinToString(separator = " ")
 
             return
         }
@@ -423,6 +443,9 @@ object Utils{
             if (update.has("reply_to_message")){
                 //parseUpdate(update.getJSONObject("reply_to_message"))
                 this.reply = Msg().parseUpdate(update.getJSONObject("reply_to_message"))
+            }
+            if (update.has("message_id")){
+                this.msgId = update.getLong("message_id")
             }
 
             if (update.has("text")){
@@ -437,8 +460,8 @@ object Utils{
                 }
             }
 
-            this.chatId = update.getJSONObject("chat").getInt("id")
-            this.fromId = update.getJSONObject("from").getInt("id")
+            this.chatId = update.getJSONObject("chat").getLong("id")
+            this.fromId = update.getJSONObject("from").getLong("id")
             this.user = User().getUser(update)
 
             this.chat = Chat().getChat(update)
@@ -451,13 +474,20 @@ object Utils{
             return this
         }
 
+        fun sendChatAction(){
+            Utils.telegram.sendChatAction(this.chatId)
+        }
+
         fun sendMessage(text: String): Any{
-            return Utils.telegram.sendMessage(text, this.chatId)
+            return Utils.telegram.sendMessage(text, this.chatId, mutableMapOf(
+                "reply_to_message_id" to this.msgId
+            ))
         }
     }
 
     class Requests{
         fun post(url: String, params: MutableMap<Any, Any>): RequestResponse{
+            //println("URL: $url, PARAMS: $params")
             val (request, response, result) = Fuel.post(url, map2List(params)).response()
 
             val requestResponse = RequestResponse()
@@ -502,5 +532,17 @@ object Utils{
         val seconds = (elapsedTime % (1000 * 60)) / 1000
 
         return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    fun sendActivity(msg: Msg): Thread{
+        val thread = Thread{
+            while(true){
+                msg.sendChatAction()
+                Thread.sleep(5000)
+            }
+        }
+        thread.start()
+
+        return thread
     }
 }

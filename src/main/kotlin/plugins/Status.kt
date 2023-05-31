@@ -6,7 +6,7 @@ import Utils
 import java.lang.Runtime.getRuntime
 
 class Status: PluginBase() {
-    override val names = mutableListOf("стат", "стата", "статус")
+    override val names = mutableListOf("стат", "стата", "статус", "stat")
     override val desc = "Статистика бота"
     override val level = 1
 
