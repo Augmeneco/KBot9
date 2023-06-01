@@ -1,6 +1,12 @@
 ### Kbot ###
 data/config.json
+data/kbotgpt.bin
 data/db.db
+/data/
+/data/*
+!**/data/
+data
+data/*
 
 .gradle
 build/
@@ -44,3 +50,4 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+

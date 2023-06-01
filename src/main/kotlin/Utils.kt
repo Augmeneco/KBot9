@@ -466,9 +466,16 @@ object Utils{
 
             this.chat = Chat().getChat(update)
 
-            if (!this.chat.users.contains(this.user.id))
+            var userExist = false
+            for (user in this.chat.users)
+                if (user == this.user.id){
+                    userExist = true
+                    break
+                }
+            if (!userExist){
                 this.chat.users.add(this.user.id)
                 this.chat.updateChat()
+            }
 
             this.parseCommand()
             return this
@@ -536,7 +543,7 @@ object Utils{
 
     fun sendActivity(msg: Msg): Thread{
         val thread = Thread{
-            while(true){
+            while(msg.data as Boolean){
                 msg.sendChatAction()
                 Thread.sleep(5000)
             }

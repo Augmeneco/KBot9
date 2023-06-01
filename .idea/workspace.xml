@@ -10,13 +10,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="11e1d0ca-009b-4593-ae9c-ef3907562b1f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/ContextTest.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/db.db" beforeDir="false" afterPath="$PROJECT_DIR$/data/db.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data/db.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/Help.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/Help.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
