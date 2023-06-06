@@ -19,7 +19,7 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
     }
 
     override fun main(msg: Utils.Msg){
-        var gptMode = "based"
+        var gptMode = "normal"
 
         if (answerMode) gptMode = "normal"
 

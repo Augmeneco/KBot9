@@ -13,6 +13,14 @@ import java.sql.Statement
 
 
 object Utils{
+    var config = Config()
+    var dataBase = DataBase()
+    var telegram = Telegram()
+    var context = Context()
+    var registry = Registry()
+    var events = Events()
+    val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("\\s|")})?\s?""", RegexOption.IGNORE_CASE)
+
     class DataBase{
         var db: Connection = DriverManager.getConnection("jdbc:sqlite:data/db.db")
 
@@ -25,12 +33,13 @@ object Utils{
                         "userName TEXT, " +
                         "realName TEXT, " +
                         "level INTEGER, " +
-                        "context TEXT, " +
                         "data TEXT)"
             )
 
             statement.execute("CREATE TABLE IF NOT EXISTS system (name TEXT, data TEXT)")
-            statement.execute("CREATE TABLE IF NOT EXISTS chats (id numeric, data TEXT, users TEXT)")
+            statement.execute("CREATE TABLE IF NOT EXISTS chats (id INTEGER, data TEXT, users TEXT)")
+            statement.execute("CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "user_id INTEGER, peer_id INTEGER, type TEXT, context TEXT, data TEXT)")
 
             //statement.close()
         }
@@ -38,16 +47,16 @@ object Utils{
     }
 
     class Context{
-        var contexts = mutableMapOf<String, ContextBase>()
+        var contexts = mutableMapOf<String, (Msg, JSONObject) -> Unit>()
 
-        fun register(name: String, pointer: ContextBase): Context{
+        fun register(name: String, pointer: (Msg, JSONObject) -> Unit): Context{
             println("Registered context \"$name\"")
             contexts[name] = pointer
 
             return this
         }
 
-        fun get(name: String): ContextBase? {
+        fun get(name: String): ((Msg, JSONObject) -> Unit)? {
             return this.contexts[name]
         }
 
@@ -122,26 +131,7 @@ object Utils{
         var isBot: Boolean = false
 
         var level: Int = 1
-        lateinit var context: String
         lateinit var data: JSONObject
-
-        fun changeContext(name: String, args: MutableMap<String, Any> = mutableMapOf()): User{
-            this.context = name
-            if (!this.data.has("context"))
-                this.data.put("context", JSONObject())
-
-            //if (!this.data.getJSONObject("context").has(name))
-            this.data.getJSONObject("context").put(name, JSONObject(args))
-            //else
-            //    this.data.getJSONObject("context").
-
-            this.updateUser()
-
-
-
-
-            return this
-        }
 
         fun updateUser(): User{
             val cur = Utils.dataBase.db.prepareStatement(
@@ -150,7 +140,6 @@ object Utils{
                     "userName = ?," +
                     "realName = ?," +
                     "level = ?," +
-                    "context = ?," +
                     "data = ?" +
                 "WHERE id = ?"
             )
@@ -158,9 +147,8 @@ object Utils{
             cur.setString(2, this.userName)
             cur.setString(3, this.realName)
             cur.setInt(4, this.level)
-            cur.setString(5, this.context.toString())
-            cur.setString(6, this.data.toString())
-            cur.setLong(7, this.id)
+            cur.setString(5, this.data.toString())
+            cur.setLong(6, this.id)
 
             cur.executeUpdate()
 
@@ -185,7 +173,6 @@ object Utils{
                     this.userName = result.getString("userName")
                     this.realName = result.getString("realName")
                     this.level = result.getInt("level")
-                    this.context = result.getString("context")
                     this.data = JSONObject(result.getString("data"))
                     this.language = data.getString("language")
                     this.isBot = data.getBoolean("is_bot")
@@ -213,10 +200,15 @@ object Utils{
         }
 
         fun addUser(update: JSONObject): User{
+            println(update)
             val fromObject = update.getJSONObject("from")
 
             this.id = fromObject.getLong("id")
-            this.userName = fromObject.getString("username")
+
+            if (fromObject.has("username"))
+                this.userName = fromObject.getString("username")
+            else
+                this.userName = "username"
 
             this.realName = fromObject.getString("first_name")
             if (fromObject.has("last_name"))
@@ -226,21 +218,19 @@ object Utils{
             else this.language = "ru"
 
             this.isBot = fromObject.getBoolean("is_bot")
-            this.context = "main"
 
             this.data = JSONObject()
             this.data.put("language", this.language)
             this.data.put("is_bot", this.isBot)
 
             val cur = Utils.dataBase.db.prepareStatement(
-                "INSERT INTO users VALUES (?,?,?,?,?,?)"
+                "INSERT INTO users VALUES (?,?,?,?,?)"
             )
             cur.setLong(1, this.id)
             cur.setString(2, this.userName)
             cur.setString(3, this.realName)
             cur.setInt(4, this.level)
-            cur.setString(5, this.context.toString())
-            cur.setString(6, this.data.toString())
+            cur.setString(5, this.data.toString())
 
             cur.executeUpdate()
 
@@ -252,6 +242,7 @@ object Utils{
         var id: Long = -1
         lateinit var data: JSONObject
         var users: MutableList<Long> = mutableListOf()
+        var contexts: MutableMap<Long, String> = mutableMapOf()
         var type: String = ""
         var title: String = ""
 
@@ -259,6 +250,7 @@ object Utils{
         var newChat: Boolean = false
 
         fun updateChat(): Chat{
+            this.data.put("contexts", JSONObject(this.contexts))
             val cur = Utils.dataBase.db.prepareStatement(
                 "UPDATE chats SET " +
                     "id = ?," +
@@ -295,6 +287,11 @@ object Utils{
                     this.users = JSONArray(result.getString("users")).toList().toMutableList() as MutableList<Long>
                     this.title = this.data.getString("title")
                     this.type = this.data.getString("type")
+
+                    //ето пиздец, пришлось конвертить <String, Any> в <Long, String>
+                    this.contexts = this.data.getJSONObject("contexts").toMap()
+                        .mapValues { (_, value) -> value as String }
+                        .mapKeys { (key, _) -> key.toLong() } as MutableMap<Long, String>
 
                     return this
                 } while (result.next())
@@ -338,6 +335,7 @@ object Utils{
 
             this.data.put("title", this.title)
             this.data.put("type", this.type)
+            this.data.put("contexts", JSONObject())
 
             cur.setLong(1, this.id)
             cur.setString(2, this.data.toString())
@@ -364,12 +362,6 @@ object Utils{
             botPrefix = configJSON.getString("bot_prefix")
         }
     }
-    var config: Config = Config()
-    var dataBase = Utils.DataBase()
-    var telegram: Telegram = Telegram()
-    var registry: Registry = Registry()
-    var context: Context = Context()
-    val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("\\s|")})?\s?""", RegexOption.IGNORE_CASE)
 
     class Msg {
         var text: String = ""
@@ -404,6 +396,21 @@ object Utils{
             ) as MutableMap<String, Any>
 
             return out
+        }
+
+        fun changeContext(name: String, args: MutableMap<String, Any> = mutableMapOf()){
+            this.chat.contexts[user.id] = name
+            if (!this.user.data.has("context"))
+                this.user.data.put("context", JSONObject())
+
+            this.user.data.getJSONObject("context").put(name, JSONObject(args))
+            this.user.updateUser()
+            this.chat.updateChat()
+        }
+
+        fun deleteContext(){
+            chat.contexts.remove(user.id)
+            chat.updateChat()
         }
 
         fun parseCommand(){
@@ -551,5 +558,16 @@ object Utils{
         thread.start()
 
         return thread
+    }
+
+    fun chunks(s: String, n: Int): List<String> {
+        val result = mutableListOf<String>()
+        var i = 0
+        while (i < s.length) {
+            val chunk = s.substring(i, minOf(i + n, s.length))
+            result.add(chunk)
+            i += n
+        }
+        return result
     }
 }

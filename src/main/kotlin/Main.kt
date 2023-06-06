@@ -1,6 +1,8 @@
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.*
 
+import Utils
+
 import org.json.JSONArray
 import org.json.JSONObject
 import plugins.KBotGPT
@@ -22,11 +24,14 @@ fun main(args: Array<String>) {
     threadPool.allowCoreThreadTimeOut(true) // разрешаем убивать потоки при простое
     //val pool = Executors.newFixedThreadPool(10) // создаем экземпляр пула потоков
 
+    Utils.events.get()
+    Utils.events.handle()
+
     Utils.registry.data["uptime"] = System.currentTimeMillis().toString()
     Utils.registry.data["usage"] = "0"
     Utils.registry.update()
 
-    println("KBot started")
+    println("\nKBot started")
 
     while(true){
         for (update in telegram.getUpdates()){
@@ -35,12 +40,13 @@ fun main(args: Array<String>) {
             val msg = Utils.Msg().parseUpdate(update)
             msg.threadPool = threadPool
 
-            if (msg.isCommand || msg.user.context != "main"){
+            if (msg.isCommand || msg.chat.contexts.contains(msg.user.id)){
                 threadPool.execute{
                     //запускаем контекст если у юзера он имеется. команда нам не нужна тогда
-                    if (msg.user.context != "main"){
-                        val context = Utils.context.get(msg.user.context)
-                        context?.main(msg, msg.user.data.getJSONObject("context").getJSONObject(msg.user.context))
+                    if (msg.chat.contexts.contains(msg.user.id)){
+                        val context = Utils.context.get(msg.chat.contexts[msg.user.id]!!)
+                        context?.invoke(msg, msg.user.data.getJSONObject("context")
+                                                          .getJSONObject(msg.chat.contexts[msg.user.id]))
 
                         return@execute
                     }
@@ -52,7 +58,7 @@ fun main(args: Array<String>) {
                         plugin.main(msg)
                     }else{
                         msg.sendMessage("Извини, но твоего уровня прав не достаточно, необходим ${plugin.level}, " +
-                                "а у тебя лишь ${msg.user.level}")
+                            "а у тебя лишь ${msg.user.level}")
                     }
                 }
 

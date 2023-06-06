@@ -13,6 +13,7 @@ object Plugins{
         Help()
         ContextTest()
         KBotGPT()
+        GenshinArts()
     }
 
     fun initPlugin(plugin: PluginBase){
@@ -23,6 +24,13 @@ object Plugins{
                 pluginsMap[name] = plugin
             }
         }
+
+        if (plugin.contexts.isNotEmpty()){
+            for ((key, value) in plugin.contexts){
+                Utils.context.register(key, value)
+            }
+        }
+
         println("Init plugin \"${plugin.names[0]}\"")
     }
 }
@@ -33,8 +41,5 @@ abstract class PluginBase(skipInit: Boolean = false){
     open val level: Int = 1
     open val hidden: Boolean = false
     abstract fun main(msg: Utils.Msg)
-}
-
-abstract class ContextBase{
-    abstract fun main(msg: Utils.Msg, args: JSONObject)
+    val contexts: MutableMap<String, (Utils.Msg, JSONObject) -> Unit> = mutableMapOf()
 }

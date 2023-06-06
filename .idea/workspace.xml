@@ -10,10 +10,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="11e1d0ca-009b-4593-ae9c-ef3907562b1f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/Events.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/ExamplePlugin.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/GenshinArts.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/db.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Telegram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Telegram.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/ContextTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/ContextTest.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -49,8 +54,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Kotlin Class" />
         <option value="Kotlin File" />
+        <option value="Kotlin Class" />
       </list>
     </option>
   </component>

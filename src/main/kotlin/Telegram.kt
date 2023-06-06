@@ -40,19 +40,22 @@ class Telegram {
         )
     }
 
-    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()): Any {
+    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()) {
         params.putAll(
             mutableMapOf(
                 "chat_id" to chatId,
-                "text" to text,
                 "parse_mode" to "HTML"
             )
         )
-        if (params["text"] == "") params["text"] = " "
 
-        return requests.post(
-            "https://api.telegram.org/$token/sendMessage",
-            params
-        ).json()
+        for (chunk in Utils.chunks(text, 4096)){
+            params["text"] = chunk
+            if (params["text"] == "") params["text"] = " "
+
+            requests.post(
+                "https://api.telegram.org/$token/sendMessage",
+                params
+            ).json()
+        }
     }
 }
