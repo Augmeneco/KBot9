@@ -5,13 +5,15 @@ import Plugins
 import Utils
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.*
+
+typealias TmpHistory = MutableMap<Long,MutableList<MutableMap<String, String>>>
 
 class KBotGPT(skipInit: Boolean = false): PluginBase() {
     override val names = mutableListOf("чат", "chat")
     override val desc = "Общение через проприетарный KBotGPT"
     override val level = 1
-    val augGPTBin = "data/kbotgpt.bin"
-    var answerMode = false
+    var gptBin = "data/kbotgpt.bin"
 
     init {
         if (!skipInit)
@@ -19,24 +21,45 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
     }
 
     override fun main(msg: Utils.Msg){
-        var gptMode = "normal"
+        if (System.getProperty("os.name").lowercase().contains("win"))
+            gptBin = "data/kbotgpt.exe"
 
-        if (answerMode) gptMode = "normal"
+        var prompt = msg.userText
+
+        if (!Utils.registry.tmpData.contains("chats_history"))
+            Utils.registry.tmpData["chats_history"] = JSONObject()
+
+        val chatsHistory = Utils.registry.tmpData["chats_history"] as JSONObject
+        if (!chatsHistory.has(msg.user.id.toString())) {
+            chatsHistory.put(msg.user.id.toString(), JSONArray())
+            prompt = "Меня зовут ${msg.user.realName}. А теперь мой вопрос: $prompt"
+        }
+
+        val chatHistory = chatsHistory.getJSONArray(msg.user.id.toString())
+        if (chatHistory.length() >= 10){
+            chatHistory.remove(0)
+        }
 
         val reqBody = JSONObject()
-        reqBody.put("prompt", msg.userText)
-        reqBody.put("mode", gptMode)
-        reqBody.put("chat", JSONArray())
+        reqBody.put("prompt", prompt)
+        reqBody.put("chat", chatHistory)
 
         msg.data = true
-        val activity = Utils.sendActivity(msg)
+        Utils.sendActivity(msg)
 
-        val process = ProcessBuilder(listOf(augGPTBin, reqBody.toString()))
+        val process = ProcessBuilder(listOf(gptBin, reqBody.toString()))
             .redirectOutput(ProcessBuilder.Redirect.PIPE)
             .start()
-        val response = process.inputStream.bufferedReader().use { it.readText() }
-
+        var response = process.inputStream.bufferedReader().use { it.readText() }
         msg.data = false
+        
+        if (response == "Unable to fetch the response, Please try again.\n")
+            response = "Хз. Чатбот не работает, пробуй позже"
+
+        chatHistory.put(mutableMapOf(
+            "question" to msg.userText,
+            "answer" to response
+        ))
 
         msg.sendMessage(response)
     }

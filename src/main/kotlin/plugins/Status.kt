@@ -21,7 +21,7 @@ ${getRamUsage()}
 Бот:
 &#8195;Активные потоки тредпула: ${msg.threadPool?.activeCount}
 &#8195;Время работы: ${
-    formatElapsedTime(System.currentTimeMillis() - Utils.registry.data["uptime"]?.toLong()!!)
+    formatElapsedTime(System.currentTimeMillis() - Utils.registry.data.getLong("uptime"))
 }
 &#8195;Обращений всего: ${Utils.registry.data["usageAll"]}
 &#8195;Обращений с включения: ${Utils.registry.data["usage"]}"""

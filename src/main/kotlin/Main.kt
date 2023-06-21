@@ -1,10 +1,3 @@
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.*
-
-import Utils
-
-import org.json.JSONArray
-import org.json.JSONObject
 import plugins.KBotGPT
 
 import java.util.concurrent.*
@@ -27,14 +20,14 @@ fun main(args: Array<String>) {
     Utils.events.get()
     Utils.events.handle()
 
-    Utils.registry.data["uptime"] = System.currentTimeMillis().toString()
-    Utils.registry.data["usage"] = "0"
+    Utils.registry.data.put("uptime", System.currentTimeMillis())
+    Utils.registry.data.put("usage", 0)
     Utils.registry.update()
 
     println("\nKBot started")
 
     while(true){
-        for (update in telegram.getUpdates()){
+        try {for (update in telegram.getUpdates()){
             //println(update.toString(4))
 
             val msg = Utils.Msg().parseUpdate(update)
@@ -63,10 +56,10 @@ fun main(args: Array<String>) {
                 }
 
                 //добавляем значение счётчика сообщений
-                if (!Utils.registry.exists("usageAll")) Utils.registry.data["usageAll"] = "0"
+                if (!Utils.registry.data.has("usageAll")) Utils.registry.data.put("usageAll", 0)
 
-                Utils.registry.data["usageAll"] = (Utils.registry.data["usageAll"]?.toInt()?.plus(1)).toString()
-                Utils.registry.data["usage"] = (Utils.registry.data["usage"]?.toInt()?.plus(1)).toString()
+                Utils.registry.data.put("usageAll", Utils.registry.data.getLong("usageAll")+1)
+                Utils.registry.data.put("usage", Utils.registry.data.getLong("usage")+1)
                 Utils.registry.update()
 
             } else if (msg.botMention){
@@ -74,11 +67,10 @@ fun main(args: Array<String>) {
 
                 threadPool.execute{
                     val kbotGPT = KBotGPT(skipInit = true)
-                    kbotGPT.answerMode = true
 
                     kbotGPT.main(msg)
                 }
             }
-        }
+        }} catch(e: Exception){e.printStackTrace()}
     }
 }

@@ -1,6 +1,5 @@
+import org.json.JSONArray
 import org.json.JSONObject
-
-import java.io.File
 
 class Telegram {
     var token: String
@@ -52,10 +51,44 @@ class Telegram {
             params["text"] = chunk
             if (params["text"] == "") params["text"] = " "
 
-            requests.post(
+            val result = requests.post(
                 "https://api.telegram.org/$token/sendMessage",
                 params
             ).json()
         }
     }
+
+    class Keyboard{
+        var oneIime = false
+        lateinit var buttons: JSONArray
+
+        fun setButtons(buttonsList: MutableList<MutableList<String>>): Keyboard{
+            buttons = JSONArray()
+
+            for (col in buttonsList){
+                val buttonsLine = JSONArray()
+                for (row in col){
+                    buttonsLine.put(row)
+                }
+                buttons.put(buttonsLine)
+            }
+
+            return this
+        }
+
+        fun isOneTime(mode: Boolean): Keyboard{
+            oneIime = mode
+            return this
+        }
+
+        fun build(): JSONObject{
+            val keyboardObj = JSONObject()
+            keyboardObj.put("one_time_keyboard", oneIime)
+            keyboardObj.put("keyboard", buttons)
+            keyboardObj.put("resize_keyboard", true)
+
+            return keyboardObj
+        }
+    }
+
 }

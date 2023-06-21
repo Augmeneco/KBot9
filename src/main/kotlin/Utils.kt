@@ -1,18 +1,16 @@
-import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.*
-
+import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONObject
-
 import java.io.File
+import java.net.InetSocketAddress
+import java.net.Proxy
 import java.sql.Connection
-import java.util.*
-import java.util.concurrent.*
 import java.sql.DriverManager
-import java.sql.Statement
+import java.util.concurrent.*
 
 
 object Utils{
+    var debug: Boolean = false;
     var config = Config()
     var dataBase = DataBase()
     var telegram = Telegram()
@@ -22,9 +20,13 @@ object Utils{
     val isCmdRegex = Regex("""^/?\s?(?<botName>${config.names.joinToString("\\s|")})?\s?""", RegexOption.IGNORE_CASE)
 
     class DataBase{
-        var db: Connection = DriverManager.getConnection("jdbc:sqlite:data/db.db")
+        var dbName = "data/db.db"
+        lateinit var db: Connection
 
         init{
+            if (debug) dbName = "data/db_debug.db"
+            db = DriverManager.getConnection("jdbc:sqlite:$dbName")
+
             //Создаём базы если их не существует
             val statement = this.db.createStatement()
             statement.execute(
@@ -63,61 +65,35 @@ object Utils{
     }
 
     class Registry{
-        var data: MutableMap<String, String> = mutableMapOf()
+        lateinit var data: JSONObject
+        var tmpData: MutableMap<String, Any> = mutableMapOf()
 
-        init{
-            reload()
-        }
+        init { load() }
 
-        fun exists(name: String): Boolean{
+        fun load(): Registry{
             val cur = Utils.dataBase.db.prepareStatement(
-                "SELECT * FROM system WHERE name=?"
+                "SELECT * FROM system WHERE name=\"registry\""
             )
-            cur.setString(1, name)
-
             val result = cur.executeQuery()
 
-            return result.next()
-        }
-
-        fun update(): Registry{
-            for ((key, value) in this.data){
-                if (!this.exists(key)){
-                    val cur = Utils.dataBase.db.prepareStatement(
-                        "INSERT INTO system VALUES (?, ?)"
-                    )
-                    cur.setString(1, key)
-                    cur.setString(2, value)
-
-                    cur.executeUpdate()
-                } else {
-                    val cur = Utils.dataBase.db.prepareStatement(
-                        "UPDATE system SET " +
-                            "name = ?," +
-                            "data = ?" +
-                        "WHERE name = ?"
-                    )
-                    cur.setString(1, key)
-                    cur.setString(2, value)
-                    cur.setString(3, key)
-
-                    cur.executeUpdate()
-                }
+            if (result.next()){
+                data = JSONObject(result.getString("data"))
+            } else {
+                data = JSONObject()
+                Utils.dataBase.db.prepareStatement(
+                    "INSERT INTO system VALUES (\"registry\", \"{}\")"
+                ).executeUpdate()
             }
 
             return this
         }
 
-        fun reload(): Registry{
+        fun update(): Registry{
             val cur = Utils.dataBase.db.prepareStatement(
-                "SELECT * FROM system"
+                "UPDATE system SET \"data\" = ? WHERE name = \"registry\""
             )
-            val result = cur.executeQuery()
-
-            while (result.next()) {
-                data.clear()
-                data[result.getString("name")] = result.getString("data")
-            }
+            cur.setString(1, data.toString())
+            cur.executeUpdate()
 
             return this
         }
@@ -323,6 +299,8 @@ object Utils{
             this.users = mutableListOf()
             this.data = JSONObject()
 
+            if (!chatObject.has("last_name")) chatObject.put("last_name","")
+
             if (this.type == "group" || this.type == "supergroup"){
                 this.title = chatObject.getString("title")
             } else {
@@ -355,9 +333,12 @@ object Utils{
 
         init{
             configJSON = JSONObject(File("data/config.json").readText())
+
             names = configJSON.getJSONArray("names").toMutableList().map{
                 it.toString()
             }.toMutableList()
+            if (debug) names = mutableListOf("кбд","дебаг")
+
             telegramToken = "bot"+configJSON.getString("telegram_token")
             botPrefix = configJSON.getString("bot_prefix")
         }
@@ -415,9 +396,11 @@ object Utils{
 
         fun parseCommand(){
             if (this.text.contains(config.botPrefix))
-                this.text = this.text.replace(config.botPrefix,"")
+                this.text = this.text.replace(config.botPrefix, "")
+
 
             val matchResult = isCmdRegex.find(this.text)
+
             if (matchResult?.groupValues?.get(1) != "")
                 botMention = true
 
@@ -492,24 +475,77 @@ object Utils{
             Utils.telegram.sendChatAction(this.chatId)
         }
 
-        fun sendMessage(text: String): Any{
-            return Utils.telegram.sendMessage(text, this.chatId, mutableMapOf(
-                "reply_to_message_id" to this.msgId
-            ))
+        fun sendMessage(text: String,
+                        params: MutableMap<Any, Any> = mutableMapOf(),
+                        keyboard: JSONObject = JSONObject()): Any{
+            params.put("reply_to_message_id", this.msgId)
+            if (!keyboard.isEmpty)
+                params.put("reply_markup", keyboard)
+
+            return Utils.telegram.sendMessage(text, this.chatId, params)
         }
     }
 
     class Requests{
-        fun post(url: String, params: MutableMap<Any, Any>): RequestResponse{
-            //println("URL: $url, PARAMS: $params")
-            val (request, response, result) = Fuel.post(url, map2List(params)).response()
+        var httpClient = OkHttpClient()
 
-            val requestResponse = RequestResponse()
-            requestResponse.content = result.get()
-            requestResponse.text = String(requestResponse.content)
-            requestResponse.status = response.statusCode
+        companion object {
+            fun buildProxy(domain: String, port: Int): Proxy{
+                return Proxy(Proxy.Type.SOCKS, InetSocketAddress(domain, port))
+            }
+        }
+
+        fun protoRequest(
+            type: String,
+            url: String,
+            params: MutableMap<Any, Any> = mutableMapOf(),
+            proxy: MutableList<Any> = mutableListOf<Any>()
+        ): RequestResponse{
+            val formBodyBuilder = FormBody.Builder()
+
+            for ((key, value) in params) {
+                formBodyBuilder.add(key.toString(), value.toString())
+            }
+            val requestBody = formBodyBuilder.build()
+            var request = Request.Builder()
+                .url(url)
+            if (type == "post")
+                request = request.post(requestBody)
+
+
+            val requestResponse: RequestResponse = RequestResponse()
+
+            var client: OkHttpClient.Builder = httpClient.newBuilder()
+            if (proxy.isNotEmpty())
+                client = client.proxy(buildProxy(
+                    proxy[0] as String, proxy[1] as Int
+                ))
+
+            client.build().newCall(request.build()).execute().use { response ->
+                val responseBody = response.body
+
+                requestResponse.content = responseBody!!.bytes()
+                requestResponse.text = String(requestResponse.content)
+                requestResponse.status = response.code
+            }
 
             return requestResponse
+        }
+
+        fun post(
+            url: String,
+            params: MutableMap<Any, Any> = mutableMapOf(),
+            proxy: MutableList<Any> = mutableListOf<Any>()
+        ): RequestResponse{
+            return protoRequest("post", url, params, proxy)
+        }
+
+        fun get(
+            url: String,
+            params: MutableMap<Any, Any> = mutableMapOf(),
+            proxy: MutableList<Any> = mutableListOf<Any>()
+        ): RequestResponse{
+            return protoRequest("get", url, params, proxy)
         }
 
         class RequestResponse{

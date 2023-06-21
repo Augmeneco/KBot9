@@ -11,10 +11,10 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.kittinunf.fuel:fuel:2.3.1")
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
     implementation("org.json:json:20220924")
     implementation("org.xerial:sqlite-jdbc:3.41.2.1")
-
+    implementation("org.jsoup:jsoup:1.16.1")
 }
 
 kotlin {
