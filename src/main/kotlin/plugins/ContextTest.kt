@@ -14,10 +14,10 @@ class ContextTest: PluginBase() {
         msg.changeContext("context_test1", mutableMapOf(
             "time" to System.currentTimeMillis()
         ))
-        /*Utils.events.add(msg, "timer", "timer_test_msg", mutableMapOf(
+        Utils.events.add(msg, "timer", "timer_test_msg", mutableMapOf(
             "timer" to System.currentTimeMillis()+10000,
             "repeat" to 10000
-        ))*/
+        ))
 
         msg.sendMessage("Жду твоего следующего сообщения. Так же я завела таймер который пришлёт сообщение через 10 секунд.")
     }

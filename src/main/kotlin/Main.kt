@@ -8,11 +8,10 @@ fun main(args: Array<String>) {
     val telegram = Telegram()
 
     val threadPool = ThreadPoolExecutor(
-        10, // максимальное количество потоков
-        10, // максимальное количество потоков в очереди
-        1, TimeUnit.MINUTES, // время простоя потока
-        LinkedBlockingQueue(), // безлимитная очередь задач
-        ThreadPoolExecutor.CallerRunsPolicy() // обработчик задач, которые не могут быть обработаны
+        100, // максимальное количество потоков
+        100, // максимальное количество потоков в очереди
+        60L, TimeUnit.SECONDS, // время простоя потока
+        LinkedBlockingQueue()
     )
     threadPool.allowCoreThreadTimeOut(true) // разрешаем убивать потоки при простое
     //val pool = Executors.newFixedThreadPool(10) // создаем экземпляр пула потоков
@@ -29,8 +28,13 @@ fun main(args: Array<String>) {
     while(true){
         try {for (update in telegram.getUpdates()){
             //println(update.toString(4))
+            val msg: Utils.Msg = if (!update.has("callback_query"))
+                Utils.Msg().parseUpdate(update)
+            else
+                Utils.Msg().parseUpdate(update.getJSONObject("callback_query"))
 
-            val msg = Utils.Msg().parseUpdate(update)
+            if (msg.user.level < 0) continue
+
             msg.threadPool = threadPool
 
             if (msg.isCommand || msg.chat.contexts.contains(msg.user.id)){
@@ -66,11 +70,14 @@ fun main(args: Array<String>) {
                 //Такой команды не существует по этому используем GPT для ответа
 
                 threadPool.execute{
-                    val kbotGPT = KBotGPT(skipInit = true)
+                    //val kbotGPT = KBotGPT(skipInit = true).main(msg)
 
-                    kbotGPT.main(msg)
+                    Plugins.pluginsMap["kbotgpt"]!!.main(msg)
                 }
             }
-        }} catch(e: Exception){e.printStackTrace()}
+        }} catch(e: Exception){
+            e.printStackTrace()
+            Thread.sleep(1000)
+        }
     }
 }

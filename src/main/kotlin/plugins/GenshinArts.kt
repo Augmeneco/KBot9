@@ -4,6 +4,7 @@ import PluginBase
 import Plugins
 import Telegram
 import Utils
+import org.json.JSONObject
 
 import org.jsoup.Jsoup
 
@@ -21,6 +22,14 @@ class GenshinArts: PluginBase() {
     init { Plugins.initPlugin(this) }
 
     override fun main(msg: Utils.Msg){
+        if (msg.isInline) {
+            val payloadData = msg.data as JSONObject
+
+
+        }
+    }
+
+    private fun getPosts(msg: Utils.Msg): org.jsoup.select.Elements {
         apiUrl = "$apiUrl${tags.joinToString(separator = "+")}+-${blacklist.joinToString(separator = "+-")}"
 
         val response = requests.get(apiUrl,
@@ -29,16 +38,7 @@ class GenshinArts: PluginBase() {
         val doc = Jsoup.parse(response)
 
         val posts = doc.getElementsByTag("post")
-        for (post in posts){
-            //println(post.getElementsByTag("file_url").text())
-        }
-
-        msg.sendMessage("тест",
-            keyboard = Telegram.Keyboard().setButtons(
-                mutableListOf(
-                    mutableListOf("пук","хрю"),
-                )
-            ).build())
-
+        return posts
+        //println(post.getElementsByTag("file_url").text())
     }
 }

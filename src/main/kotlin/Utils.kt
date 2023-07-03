@@ -163,7 +163,12 @@ object Utils{
         }
 
         fun getUser(update: JSONObject): User{
-            val fromObject = update.getJSONObject("from")
+            val fromObject: JSONObject
+
+            if (update.has("from"))
+                fromObject = update.getJSONObject("from")
+            else
+                fromObject = update
             this.id = fromObject.getLong("id")
 
             try {
@@ -176,8 +181,11 @@ object Utils{
         }
 
         fun addUser(update: JSONObject): User{
-            println(update)
-            val fromObject = update.getJSONObject("from")
+            val fromObject: JSONObject
+            if (update.has("from"))
+                fromObject = update.getJSONObject("from")
+            else
+                fromObject = update
 
             this.id = fromObject.getLong("id")
 
@@ -352,12 +360,16 @@ object Utils{
         var files: List<Any> = emptyList()
         var argv: List<String> = emptyList()
         var userText: String = ""
-        var data: Any? = null
+        var data: JSONObject = JSONObject()
         var reply: Msg? = null
         var isCommand: Boolean = false
         var botMention: Boolean = false
         var command: String = ""
         var threadPool: ThreadPoolExecutor? = null
+        var isInline = false
+        var activityEvent = false
+        var inlineMsgId: String = ""
+        lateinit var inlineMsg: Msg
         lateinit var user: User
         lateinit var chat: Chat
 
@@ -366,12 +378,9 @@ object Utils{
                 "text" to text,
                 "chatId" to chatId,
                 "fromId" to fromId,
-                "files" to files,
-                "argv" to argv,
+                "argv" to JSONArray(argv).toString(),
                 "msgId" to msgId,
                 "userText" to userText,
-                "data" to data,
-                "reply" to reply,
                 "command" to command,
                 "isCommand" to isCommand
             ) as MutableMap<String, Any>
@@ -430,31 +439,44 @@ object Utils{
         }
 
         fun parseUpdate(update: JSONObject): Msg{
-            if (update.has("reply_to_message")){
+            val message: JSONObject = if (update.has("data"))
+                update.getJSONObject("message").getJSONObject("reply_to_message")
+            else
+                update
+            if (update.has("data")){
+                isInline = true
+                this.data = JSONObject(update.getString("data"))
+                this.inlineMsgId = update.getString("id")
+                this.inlineMsg = Msg().parseUpdate(update.getJSONObject("message"))
+            }
+
+            if (message.has("reply_to_message")){
                 //parseUpdate(update.getJSONObject("reply_to_message"))
-                this.reply = Msg().parseUpdate(update.getJSONObject("reply_to_message"))
+                this.reply = Msg().parseUpdate(message.getJSONObject("reply_to_message"))
             }
-            if (update.has("message_id")){
-                this.msgId = update.getLong("message_id")
-            }
-
-            if (update.has("text")){
-                this.text = update.getString("text")
+            if (message.has("message_id")){
+                this.msgId = message.getLong("message_id")
             }
 
-            if (update.has("photo")){
+            if (message.has("text")){
+                this.text = message.getString("text")
+            }
+
+            if (message.has("photo")){
                 //val fileId = update.getJSONArray("photo").toList()
 
-                if (update.has("caption")){
-                    this.text = update.getString("caption")
+                if (message.has("caption")){
+                    this.text = message.getString("caption")
                 }
             }
 
-            this.chatId = update.getJSONObject("chat").getLong("id")
-            this.fromId = update.getJSONObject("from").getLong("id")
-            this.user = User().getUser(update)
-
-            this.chat = Chat().getChat(update)
+            this.chatId = message.getJSONObject("chat").getLong("id")
+            this.fromId = message.getJSONObject("from").getLong("id")
+            if (!isInline)
+                this.user = User().getUser(message)
+            else
+                this.user = User().getUser(update)
+            this.chat = Chat().getChat(message)
 
             var userExist = false
             for (user in this.chat.users)
@@ -475,10 +497,26 @@ object Utils{
             Utils.telegram.sendChatAction(this.chatId)
         }
 
-        fun sendMessage(text: String,
+        fun sendMethod(method: String, params: MutableMap<Any, Any> = mutableMapOf()){
+            return Utils.telegram.sendMethod(method, chatId, params)
+        }
+
+        fun editMessage(text: String,
                         params: MutableMap<Any, Any> = mutableMapOf(),
                         keyboard: JSONObject = JSONObject()): Any{
-            params.put("reply_to_message_id", this.msgId)
+
+            if (!keyboard.isEmpty)
+                params.put("reply_markup", keyboard)
+
+            return Utils.telegram.editMessage(text, this.chatId, this.inlineMsg.msgId, params)
+        }
+
+        fun sendMessage(text: String,
+                        params: MutableMap<Any, Any> = mutableMapOf(),
+                        reply: Boolean = true,
+                        keyboard: JSONObject = JSONObject()): Any{
+            if (reply)
+                params.put("reply_to_message_id", this.msgId)
             if (!keyboard.isEmpty)
                 params.put("reply_markup", keyboard)
 
@@ -586,7 +624,7 @@ object Utils{
 
     fun sendActivity(msg: Msg): Thread{
         val thread = Thread{
-            while(msg.data as Boolean){
+            while(msg.activityEvent){
                 msg.sendChatAction()
                 Thread.sleep(5000)
             }

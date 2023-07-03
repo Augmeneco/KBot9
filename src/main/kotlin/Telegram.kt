@@ -1,5 +1,6 @@
 import org.json.JSONArray
 import org.json.JSONObject
+import java.security.Key
 
 class Telegram {
     var token: String
@@ -23,8 +24,12 @@ class Telegram {
             val update = updates.getJSONObject(i)
 
             updateId = update.getInt("update_id")+1
+
             if (update.has("message")){
                 yield(update.getJSONObject("message"))
+            }
+            if (update.has("callback_query")){
+                yield((update))
             }
         }
     }
@@ -39,31 +44,75 @@ class Telegram {
         )
     }
 
-    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()) {
+    fun sendMethod(method: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()){
         params.putAll(
             mutableMapOf(
-                "chat_id" to chatId,
-                "parse_mode" to "HTML"
+                "chat_id" to chatId
             )
         )
 
-        for (chunk in Utils.chunks(text, 4096)){
+        val result = requests.post(
+            "https://api.telegram.org/$token/$method",
+            params
+        ).json()
+    }
+
+    fun editMessage(text: String, chatId: Long, msgId: Long, params: MutableMap<Any, Any> = mutableMapOf()) {
+        params.put("message_id", msgId)
+        sendMessage(text, chatId, params, method = "editMessageText")
+    }
+
+    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf(), method: String = "sendMessage") {
+        var mutableText = text
+
+        /*params.putAll(
+            mutableMapOf(
+                "chat_id" to chatId
+            )
+        )*/
+
+        params["chat_id"] = chatId
+
+        if (!params.contains("parse_mode"))
+            params.put("parse_mode", "HTML")
+
+        for (chunk in Utils.chunks(mutableText, 4096)){
             params["text"] = chunk
             if (params["text"] == "") params["text"] = " "
 
             val result = requests.post(
-                "https://api.telegram.org/$token/sendMessage",
+                "https://api.telegram.org/$token/$method",
                 params
             ).json()
+            //println(result)
         }
     }
 
     class Keyboard{
         var oneIime = false
+        var inline = false
         lateinit var buttons: JSONArray
 
+        //reply buttons
         fun setButtons(buttonsList: MutableList<MutableList<String>>): Keyboard{
             buttons = JSONArray()
+            inline = false
+
+            for (col in buttonsList){
+                val buttonsLine = JSONArray()
+                for (row in col){
+                    buttonsLine.put(row)
+                }
+                buttons.put(buttonsLine)
+            }
+
+            return this
+        }
+
+        //inline buttons
+        fun setInlineButtons(buttonsList: MutableList<MutableList<MutableMap<String, String>>>): Keyboard{
+            buttons = JSONArray()
+            inline = true
 
             for (col in buttonsList){
                 val buttonsLine = JSONArray()
@@ -80,11 +129,20 @@ class Telegram {
             oneIime = mode
             return this
         }
+        fun isInline(mode: Boolean): Keyboard{
+            inline = mode
+            return this
+        }
 
         fun build(): JSONObject{
             val keyboardObj = JSONObject()
             keyboardObj.put("one_time_keyboard", oneIime)
-            keyboardObj.put("keyboard", buttons)
+
+            if (inline)
+                keyboardObj.put("inline_keyboard", buttons)
+            else
+                keyboardObj.put("keyboard", buttons)
+
             keyboardObj.put("resize_keyboard", true)
 
             return keyboardObj

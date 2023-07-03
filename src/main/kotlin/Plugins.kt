@@ -14,6 +14,9 @@ object Plugins{
         ContextTest()
         KBotGPT()
         GenshinArts()
+        Term()
+        ExamplePlugin()
+        //Hryu()
     }
 
     fun initPlugin(plugin: PluginBase){

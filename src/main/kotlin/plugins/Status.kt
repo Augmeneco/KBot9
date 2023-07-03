@@ -19,7 +19,7 @@ class Status: PluginBase() {
 ОЗУ:
 ${getRamUsage()}
 Бот:
-&#8195;Активные потоки тредпула: ${msg.threadPool?.activeCount}
+&#8195;Активные потоки тредпула: ${msg.threadPool?.activeCount} из ${msg.threadPool!!.maximumPoolSize}
 &#8195;Время работы: ${
     formatElapsedTime(System.currentTimeMillis() - Utils.registry.data.getLong("uptime"))
 }
@@ -36,10 +36,10 @@ ${getRamUsage()}
 
     fun getRamUsage(): String{
         val runtime = Runtime.getRuntime()
-        val totalMemoryJVM = runtime.totalMemory() / 1024 /1024
+        val totalMemoryJVM = runtime.totalMemory() / 1024 / 1024
         val freeMemoryJVM = runtime.freeMemory() / 1024 / 1024
         val maxMemoryJVM = runtime.maxMemory() / 1024 / 1024
-        val usedMemoryJVM = totalMemoryJVM - freeMemoryJVM
+        val usedMemoryJVM = runtime.totalMemory() - runtime.freeMemory()
 
         val result = getRuntime().exec("free -m").inputStream.bufferedReader().useLines { lines ->
             lines.drop(1).first().split("\\s+".toRegex())
@@ -49,12 +49,9 @@ ${getRamUsage()}
         val freeMemory = result[3].toLong()
         val usedMemory = totalMemory - freeMemory
 
-        return "&#8195;&#8195;Всего в системе: $totalMemory MB\n" +
-                "&#8195;&#8195;Всего в JVM: $totalMemoryJVM MB\n" +
-                "&#8195;&#8195;Использовано в системе: $usedMemory MB\n" +
-                "&#8195;&#8195;Использовано ботом: $usedMemoryJVM MB\n" +
-                "&#8195;&#8195;Свободно в системе: $freeMemory MB\n" +
-                "&#8195;&#8195;Свободно в JVM: $freeMemoryJVM MB"
+        return "&#8195;&#8195;Всего в системе: $usedMemory MB/$totalMemory MB\n" +
+                "&#8195;&#8195;Всего в JVM: ${usedMemoryJVM/1024/1024} MB/$totalMemoryJVM MB\n" +
+                "&#8195;&#8195;Использовано ботом: ${usedMemoryJVM/1024} KB"
     }
 
     fun formatElapsedTime(elapsedTime: Long): String {
