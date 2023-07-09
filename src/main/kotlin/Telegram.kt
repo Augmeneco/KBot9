@@ -83,8 +83,12 @@ class Telegram {
             val result = requests.post(
                 "https://api.telegram.org/$token/$method",
                 params
-            ).json()
-            //println(result)
+            ).json() as JSONObject
+            if (result.has("error_code")){
+                println(result)
+                sendMessage("Ошибка: ${result.getInt("error_code")}\n${result.getString("description")}", chatId)
+            }
+
         }
     }
 

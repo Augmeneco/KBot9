@@ -10,20 +10,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="11e1d0ca-009b-4593-ae9c-ef3907562b1f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/kbot9.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/Hryu.kt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/Term.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/artifacts/kbot9_jar.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/artifacts/kbot9_jar.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Main.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Main.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Plugins.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/Telegram.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Telegram.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/Utils.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/ContextTest.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/ContextTest.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/ExamplePlugin.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/ExamplePlugin.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/GenshinArts.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/GenshinArts.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/KBotGPT.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/kotlin/plugins/Status.kt" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/kotlin/plugins/Status.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
