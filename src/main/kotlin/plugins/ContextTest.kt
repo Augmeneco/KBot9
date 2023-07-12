@@ -48,6 +48,6 @@ class ContextTest: PluginBase() {
         contexts["context_test2"] = context_test2
         contexts["timer_test_msg"] = timer_test_msg
 
-        Plugins.initPlugin(this)
+        //Plugins.initPlugin(this)
     }
 }

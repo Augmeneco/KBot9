@@ -358,7 +358,7 @@ object Utils{
         var fromId: Long = 0
         var msgId: Long = 0
         var files: List<Any> = emptyList()
-        var argv: List<String> = emptyList()
+        var argv: MutableList<String> = mutableListOf()
         var userText: String = ""
         var data: JSONObject = JSONObject()
         var reply: Msg? = null
@@ -410,13 +410,20 @@ object Utils{
 
             val matchResult = isCmdRegex.find(this.text)
 
-            if (matchResult?.groupValues?.get(1) != "")
-                botMention = true
+            if (this.reply != null)
+                if (this.reply!!.user.id == Utils.telegram.botId) this.botMention = true
 
             val prefix = matchResult?.value
             if (prefix == "" || prefix == null){
+                if (botMention){
+                    this.userText = this.text
+                    this.command = this.userText
+                }
                 return
             }
+
+            if (matchResult?.groupValues?.get(1) != "")
+                botMention = true
 
             val argv = isCmdRegex.replaceFirst(this.text, "").split(" ").toMutableList()
             val command = argv[0].lowercase()
@@ -425,6 +432,7 @@ object Utils{
                 this.argv = argv
                 this.userText = argv.joinToString(separator = " ")
                 this.command = this.userText
+
                 return
             }
 
@@ -497,8 +505,8 @@ object Utils{
             Utils.telegram.sendChatAction(this.chatId)
         }
 
-        fun sendMethod(method: String, params: MutableMap<Any, Any> = mutableMapOf()){
-            return Utils.telegram.sendMethod(method, chatId, params)
+        fun sendMethod(method: String, params: MutableMap<Any, Any> = mutableMapOf()): Any{
+            return Utils.telegram.sendMethod(method, params)
         }
 
         fun editMessage(text: String,
@@ -514,7 +522,7 @@ object Utils{
         fun sendMessage(text: String,
                         params: MutableMap<Any, Any> = mutableMapOf(),
                         reply: Boolean = true,
-                        keyboard: JSONObject = JSONObject()): Any{
+                        keyboard: JSONObject = JSONObject()): JSONObject{
             if (reply)
                 params.put("reply_to_message_id", this.msgId)
             if (!keyboard.isEmpty)

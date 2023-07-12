@@ -7,8 +7,12 @@ class Telegram {
     var updateId: Int = -1
     var requests = Utils.Requests()
 
+    var botId: Long = -1
+
     init {
         token = Utils.config.telegramToken
+
+        botId = (sendMethod("getMe") as JSONObject).getJSONObject("result").getLong("id")
     }
 
     fun getUpdates(): Sequence<JSONObject> = sequence{
@@ -44,17 +48,13 @@ class Telegram {
         )
     }
 
-    fun sendMethod(method: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf()){
-        params.putAll(
-            mutableMapOf(
-                "chat_id" to chatId
-            )
-        )
-
+    fun sendMethod(method: String, params: MutableMap<Any, Any> = mutableMapOf()): Any{
         val result = requests.post(
             "https://api.telegram.org/$token/$method",
             params
         ).json()
+
+        return result
     }
 
     fun editMessage(text: String, chatId: Long, msgId: Long, params: MutableMap<Any, Any> = mutableMapOf()) {
@@ -62,25 +62,20 @@ class Telegram {
         sendMessage(text, chatId, params, method = "editMessageText")
     }
 
-    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf(), method: String = "sendMessage") {
+    fun sendMessage(text: String, chatId: Long, params: MutableMap<Any, Any> = mutableMapOf(), method: String = "sendMessage"): JSONObject {
         var mutableText = text
-
-        /*params.putAll(
-            mutableMapOf(
-                "chat_id" to chatId
-            )
-        )*/
-
         params["chat_id"] = chatId
 
         if (!params.contains("parse_mode"))
             params.put("parse_mode", "HTML")
 
+        var result = JSONObject()
+
         for (chunk in Utils.chunks(mutableText, 4096)){
             params["text"] = chunk
             if (params["text"] == "") params["text"] = " "
 
-            val result = requests.post(
+            result = requests.post(
                 "https://api.telegram.org/$token/$method",
                 params
             ).json() as JSONObject
@@ -88,8 +83,9 @@ class Telegram {
                 println(result)
                 sendMessage("Ошибка: ${result.getInt("error_code")}\n${result.getString("description")}", chatId)
             }
-
         }
+
+        return result
     }
 
     class Keyboard{

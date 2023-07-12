@@ -14,7 +14,7 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
     override val level = 1
     var gptBin = "data/kbotgpt.bin"
     val tmpData = Utils.registry.tmpData
-    lateinit var gptHistory: JSONObject
+    lateinit var gptContexts: JSONObject
 
     override fun main(msg: Utils.Msg){
         if (System.getProperty("os.name").lowercase().contains("win"))
@@ -30,9 +30,26 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
                     "Обрезать сообщения запрещено! Пиши ответ полностью."
         )
 
+        var chat = JSONArray()
+        chat.put(systemPrompt)
+
+        if (!gptContexts.has(msg.user.id.toString()))
+            gptContexts.put(msg.user.id.toString(), JSONArray())
+
+        if (msg.reply != null){
+            if (Utils.telegram.botId == msg.reply!!.user.id) {
+                for (history in gptContexts.getJSONArray(msg.user.id.toString())){
+                    if ((history as JSONObject).getJSONArray("replyIds").contains(msg.reply!!.msgId)){
+                        chat = (history as JSONObject).getJSONArray("history")
+                        break
+                    }
+                }
+            }
+        }
+
         val reqBody = JSONObject()
         reqBody.put("prompt", msg.userText)
-        reqBody.put("chat", JSONArray())
+        reqBody.put("chat", chat)
 
         msg.activityEvent = true
         Utils.sendActivity(msg)
@@ -43,13 +60,55 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
         val response = process.inputStream.bufferedReader().use { it.readText() }
         msg.activityEvent = false
 
-        msg.sendMessage(response)
+        if (response.contains("Error 400")){
+            msg.sendMessage("Произошла какая-то ошибка на стороне OpenAI :(\n$response")
+            return
+        }
+
+        val result = msg.sendMessage(response)
+
+        chat.putAll(mutableListOf(
+            mutableMapOf(
+                "role" to "user",
+                "content" to msg.userText
+            ),
+            mutableMapOf(
+                "role" to "assistant",
+                "content" to response
+            )
+        ))
+
+        if (msg.reply == null){
+            gptContexts.getJSONArray(msg.user.id.toString()).put(
+                JSONObject(mutableMapOf(
+                    "replyIds" to JSONArray(mutableListOf(result.getJSONObject("result").getLong("message_id"))),
+                    "history" to chat
+                ))
+            )
+        }else{
+            var findChat = false
+            for (history in gptContexts.getJSONArray(msg.user.id.toString())){
+                if ((history as JSONObject).getJSONArray("replyIds").contains(msg.reply!!.msgId)){
+                    (history as JSONObject).put("history", chat)
+                    (history as JSONObject).getJSONArray("replyIds").put(result.getJSONObject("result").getLong("message_id"))
+                    findChat = true
+                    break
+                }
+            }
+            if (!findChat)
+                gptContexts.getJSONArray(msg.user.id.toString()).put(
+                    JSONObject(mutableMapOf(
+                        "replyIds" to JSONArray(mutableListOf(result.getJSONObject("result").getLong("message_id"))),
+                        "history" to chat
+                    )))
+        }
+
     }
 
     init {
-        if (!tmpData.contains("gpt_history"))
-            tmpData.put("gpt_history",JSONObject())
-        gptHistory = tmpData["gpt_history"] as JSONObject
+        if (!tmpData.contains("gpt_contexts"))
+            tmpData.put("gpt_contexts",JSONObject())
+        gptContexts = tmpData["gpt_contexts"] as JSONObject
         Plugins.initPlugin(this)
     }
 }
