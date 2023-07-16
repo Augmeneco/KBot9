@@ -66,8 +66,8 @@ class Telegram {
         var mutableText = text
         params["chat_id"] = chatId
 
-        if (!params.contains("parse_mode"))
-            params.put("parse_mode", "HTML")
+        //if (!params.contains("parse_mode"))
+        //    params.put("parse_mode", "HTML")
 
         var result = JSONObject()
 

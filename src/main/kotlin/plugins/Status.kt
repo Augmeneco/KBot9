@@ -26,7 +26,7 @@ ${getRamUsage()}
 &#8195;Обращений всего: ${Utils.registry.data["usageAll"]}
 &#8195;Обращений с включения: ${Utils.registry.data["usage"]}"""
 
-        msg.sendMessage(out)
+        msg.sendMessage(out, params = mutableMapOf("parse_mode" to "HTML"))
     }
 
     fun getCpuLoad(): String{

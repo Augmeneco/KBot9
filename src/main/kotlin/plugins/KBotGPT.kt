@@ -14,9 +14,10 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
     override val level = 1
     var gptBin = "data/kbotgpt.bin"
     val tmpData = Utils.registry.tmpData
-    lateinit var gptContexts: JSONObject
+    lateinit var gptContexts: JSONArray
 
     override fun main(msg: Utils.Msg){
+        if (msg.text == "") return
         if (System.getProperty("os.name").lowercase().contains("win"))
             gptBin = "data/kbotgpt.exe"
 
@@ -33,12 +34,9 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
         var chat = JSONArray()
         chat.put(systemPrompt)
 
-        if (!gptContexts.has(msg.user.id.toString()))
-            gptContexts.put(msg.user.id.toString(), JSONArray())
-
         if (msg.reply != null){
             if (Utils.telegram.botId == msg.reply!!.user.id) {
-                for (history in gptContexts.getJSONArray(msg.user.id.toString())){
+                for (history in gptContexts){
                     if ((history as JSONObject).getJSONArray("replyIds").contains(msg.reply!!.msgId)){
                         chat = (history as JSONObject).getJSONArray("history")
                         break
@@ -79,7 +77,7 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
         ))
 
         if (msg.reply == null){
-            gptContexts.getJSONArray(msg.user.id.toString()).put(
+            gptContexts.put(
                 JSONObject(mutableMapOf(
                     "replyIds" to JSONArray(mutableListOf(result.getJSONObject("result").getLong("message_id"))),
                     "history" to chat
@@ -87,7 +85,7 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
             )
         }else{
             var findChat = false
-            for (history in gptContexts.getJSONArray(msg.user.id.toString())){
+            for (history in gptContexts){
                 if ((history as JSONObject).getJSONArray("replyIds").contains(msg.reply!!.msgId)){
                     (history as JSONObject).put("history", chat)
                     (history as JSONObject).getJSONArray("replyIds").put(result.getJSONObject("result").getLong("message_id"))
@@ -96,7 +94,7 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
                 }
             }
             if (!findChat)
-                gptContexts.getJSONArray(msg.user.id.toString()).put(
+                gptContexts.put(
                     JSONObject(mutableMapOf(
                         "replyIds" to JSONArray(mutableListOf(result.getJSONObject("result").getLong("message_id"))),
                         "history" to chat
@@ -107,8 +105,8 @@ class KBotGPT(skipInit: Boolean = false): PluginBase() {
 
     init {
         if (!tmpData.contains("gpt_contexts"))
-            tmpData.put("gpt_contexts",JSONObject())
-        gptContexts = tmpData["gpt_contexts"] as JSONObject
+            tmpData.put("gpt_contexts",JSONArray())
+        gptContexts = tmpData["gpt_contexts"] as JSONArray
         Plugins.initPlugin(this)
     }
 }
